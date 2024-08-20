@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import get_settings, Settings
 from app.database import JobModel
@@ -10,7 +10,7 @@ settings: Settings = get_settings()
 
 
 class CreateJobRequest(BaseModel):
-    total_run_time: int  # milliseconds
+    total_run_time: int = Field(ge=1)  # milliseconds
 
 
 class Job(CreateJobRequest):

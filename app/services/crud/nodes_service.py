@@ -4,12 +4,13 @@ from uuid import UUID
 
 from app.database import NodeModel, state
 from app.schemas.nodes import CreateNodeRequest
+from app.services.jobs_scheduler import JobsScheduler
 
 
 class BaseNodesService(ABC):
     @staticmethod
     @abstractmethod
-    def get_all_nodes():
+    async def get_all_nodes():
         pass
 
     @staticmethod
@@ -25,11 +26,14 @@ class BaseNodesService(ABC):
 
 class InMemoryNodesService(BaseNodesService):
     @staticmethod
-    def get_all_nodes() -> list[NodeModel]:
+    async def get_all_nodes() -> list[NodeModel]:
+        await JobsScheduler.update_jobs(state)
         return list(state["nodes"].values())
 
     @staticmethod
     async def provision_nodes(nodes: list[CreateNodeRequest]) -> list[NodeModel]:
+        await JobsScheduler.update_jobs(state)
+
         node_entities = []
         for node in nodes:
             node_id = uuid.uuid4()
@@ -39,11 +43,13 @@ class InMemoryNodesService(BaseNodesService):
                 max_total_jobs=node.max_total_jobs,
                 jobs=[],
                 metadata={
-                    "threads": [[] for _ in range(node.max_concurrent_jobs)],
-                    # all jobs with the 'SCHEDULED' and 'RUNNING' statuses
-                    "total_active_jobs": 0,
-                    # number of free threads (no jobs or already finished/terminated ones)
+                    "threads": [set() for _ in range(node.max_concurrent_jobs)],
                     "free_threads": node.max_concurrent_jobs,
+                    "total_active_jobs": 0,
+                    "best_fit_thread": {
+                        "thread_id": 0,
+                        "available_at": None,  # 'None' means it can be used right away
+                    },
                 },
             )
 
@@ -54,4 +60,6 @@ class InMemoryNodesService(BaseNodesService):
 
     @staticmethod
     async def remove_node(node_id: UUID) -> None:
+        await JobsScheduler.update_jobs(state)
+
         del state["nodes"][node_id]

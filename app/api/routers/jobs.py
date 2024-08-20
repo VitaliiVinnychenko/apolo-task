@@ -19,7 +19,8 @@ router = APIRouter(
     response_model=list[Job],
 )
 async def get_all_jobs() -> list[Job]:
-    return [Job.from_obj(job) for job in JobsService.get_all_jobs()]
+    all_jobs = await JobsService.get_all_jobs()
+    return [Job.from_obj(job) for job in all_jobs]
 
 
 @router.post(

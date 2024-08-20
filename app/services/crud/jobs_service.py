@@ -4,13 +4,14 @@ from uuid import UUID
 
 from app.database import JobModel, state
 from app.schemas.jobs import CreateJobRequest
+from app.services.jobs_scheduler import JobsScheduler
 from app.utils.enums.jobs import JobStatus
 
 
 class BaseJobsService(ABC):
     @staticmethod
     @abstractmethod
-    def get_all_jobs():
+    async def get_all_jobs():
         pass
 
     @staticmethod
@@ -31,7 +32,8 @@ class BaseJobsService(ABC):
 
 class InMemoryJobsService(BaseJobsService):
     @staticmethod
-    def get_all_jobs() -> list[JobModel]:
+    async def get_all_jobs() -> list[JobModel]:
+        await JobsScheduler.update_jobs(state)
         return list(state["jobs"].values())
 
     @staticmethod
@@ -40,6 +42,9 @@ class InMemoryJobsService(BaseJobsService):
 
     @staticmethod
     async def submit_jobs(jobs: list[CreateJobRequest]) -> list[JobModel]:
+        await JobsScheduler.update_jobs(state)
+        jobs.sort(key=lambda obj: obj.total_run_time, reverse=True)
+
         job_entities = []
         for job in jobs:
             job_id = uuid.uuid4()
@@ -52,9 +57,11 @@ class InMemoryJobsService(BaseJobsService):
 
             job_entities.append(job_entity)
             state["jobs"][job_id] = job_entity
+            await JobsScheduler.schedule_job(state, job_id)
 
         return job_entities
 
     @staticmethod
     async def terminate_job(job_id: UUID) -> None:
+        await JobsScheduler.update_jobs(state)
         del state["jobs"][job_id]

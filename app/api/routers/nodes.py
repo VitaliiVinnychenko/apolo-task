@@ -19,7 +19,8 @@ router = APIRouter(
     response_model=list[Node],
 )
 async def get_all_nodes() -> list[Node]:
-    return [Node.from_obj(node) for node in NodesService.get_all_nodes()]
+    all_nodes = await NodesService.get_all_nodes()
+    return [Node.from_obj(node) for node in all_nodes]
 
 
 @router.post(

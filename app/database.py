@@ -33,11 +33,17 @@ class NodeModel:
     #  - the Node can run 3 jobs concurrently
     #
     #  metadata={
-    #    "threads": [
-    #       [],  - thread #1
-    #       [],  - thread #2
-    #       [],  - thread #3
+    #    "threads": [                       - pool of threads
+    #       [],                             - thread #1
+    #       [],                             - thread #2
+    #       [],                             - thread #3
     #    ],
+    #    "total_active_jobs": int,          - all jobs with the 'SCHEDULED' and 'RUNNING' statuses
+    #    "free_threads": int,               - number of free threads (no jobs or already finished/terminated ones)
+    #    "best_fit_thread": {               - the closest to be available thread info
+    #       "thread_id": int                - id of the thread
+    #       "available_at": datetime        - time when the thread is going to be free
+    #    },
     #  }
     metadata: dict
 
