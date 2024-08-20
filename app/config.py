@@ -43,7 +43,7 @@ class Settings(BaseSettings):
         Tell BaseSettings the env file path
         """
 
-        env_file = "../../.env"
+        env_file = "../.env"
 
 
 @lru_cache()

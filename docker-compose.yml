@@ -2,15 +2,14 @@ version: '3.9'
 
 services:
   api:
-    build: ./backend
+    build: .
     command: bash -c "uvicorn app.main:app --host 0.0.0.0 --port 80 --workers 1 --proxy-headers --reload"
     volumes:
-    - ./backend:/usr/src/app
+    - .:/usr/src/app
     tty: true
     env_file: .env
     environment:
       PYTHONPATH: .
-      DATABASE_URL: postgresql+asyncpg://dev-user:password@postgres:5432/dev_db
     ports:
     - 3000:80
     networks:

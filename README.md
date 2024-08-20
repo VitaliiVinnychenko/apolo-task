@@ -137,7 +137,7 @@ We use the `pydantic` [baseconfig](https://pydantic-docs.helpmanual.io/usage/set
 be derived from a few places, in the following order.
 
 1. ENV vars
-2. the defaults stored in [config.py](backend/app/config.py)
+2. the defaults stored in [config.py](app/config.py)
 
 # 6.0 Development / Debugging
 
