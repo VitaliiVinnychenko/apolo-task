@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  api:
+    build: ./backend
+    command: bash -c "uvicorn app.main:app --host 0.0.0.0 --port 80 --workers 1 --proxy-headers --reload"
+    volumes:
+    - ./backend:/usr/src/app
+    tty: true
+    env_file: .env
+    environment:
+      PYTHONPATH: .
+      DATABASE_URL: postgresql+asyncpg://dev-user:password@postgres:5432/dev_db
+    ports:
+    - 3000:80
+    networks:
+    - app-network
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:3000/status]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+networks:
+  app-network:
