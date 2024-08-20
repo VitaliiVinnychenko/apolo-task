@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.schemas.nodes import Node, CreateNodeRequest
+from app.schemas.nodes import CreateNodeRequest, Node
 
 
 class BaseNodesService(ABC):
-
     @staticmethod
     @abstractmethod
     async def get_all_nodes() -> list[Node]:
@@ -23,7 +22,6 @@ class BaseNodesService(ABC):
 
 
 class InMemoryNodesService(BaseNodesService):
-
     @staticmethod
     async def get_all_nodes() -> list[Node]:
         pass

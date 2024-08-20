@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.schemas.jobs import Job, CreateJobRequest
+from app.schemas.jobs import CreateJobRequest, Job
 
 
 class BaseJobsService(ABC):
-
     @staticmethod
     @abstractmethod
     async def get_all_jobs() -> list[Job]:
@@ -23,7 +22,6 @@ class BaseJobsService(ABC):
 
 
 class InMemoryJobsService(BaseJobsService):
-
     @staticmethod
     async def get_all_jobs() -> list[Job]:
         pass

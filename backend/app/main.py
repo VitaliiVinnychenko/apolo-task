@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.routers import nodes, jobs
+from app.api.routers import jobs, nodes
 from app.config import get_settings, Settings
 from app.logger import get_logger
 from app.utils.helpers import custom_generate_unique_id

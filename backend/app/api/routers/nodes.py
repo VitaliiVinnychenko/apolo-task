@@ -1,9 +1,10 @@
 from uuid import UUID
 
-from app.services import NodesService
+from fastapi import APIRouter, status
+
 from app.config import get_settings, Settings
 from app.schemas.nodes import CreateNodeRequest, Node
-from fastapi import APIRouter, status
+from app.services import NodesService
 
 settings: Settings = get_settings()
 router = APIRouter(

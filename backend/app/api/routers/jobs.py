@@ -2,9 +2,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.services import JobsService
 from app.config import get_settings, Settings
 from app.schemas.jobs import CreateJobRequest, Job
+from app.services import JobsService
 
 settings: Settings = get_settings()
 router = APIRouter(
