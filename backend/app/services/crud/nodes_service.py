@@ -9,12 +9,12 @@ from app.schemas.nodes import CreateNodeRequest
 class BaseNodesService(ABC):
     @staticmethod
     @abstractmethod
-    def get_all_nodes() -> list[NodeModel]:
+    def get_all_nodes():
         pass
 
     @staticmethod
     @abstractmethod
-    async def provision_nodes(nodes: list[CreateNodeRequest]) -> list[NodeModel]:
+    async def provision_nodes(nodes: list[CreateNodeRequest]):
         pass
 
     @staticmethod
@@ -38,7 +38,13 @@ class InMemoryNodesService(BaseNodesService):
                 max_concurrent_jobs=node.max_concurrent_jobs,
                 max_total_jobs=node.max_total_jobs,
                 jobs=[],
-                metadata={"threads": [[] for _ in range(node.max_concurrent_jobs)]},
+                metadata={
+                    "threads": [[] for _ in range(node.max_concurrent_jobs)],
+                    # all jobs with the 'SCHEDULED' and 'RUNNING' statuses
+                    "total_active_jobs": 0,
+                    # number of free threads (no jobs or already finished/terminated ones)
+                    "free_threads": node.max_concurrent_jobs,
+                },
             )
 
             node_entities.append(node_entity)

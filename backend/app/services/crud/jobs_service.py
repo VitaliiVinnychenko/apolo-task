@@ -10,17 +10,17 @@ from app.utils.enums.jobs import JobStatus
 class BaseJobsService(ABC):
     @staticmethod
     @abstractmethod
-    def get_all_jobs() -> list[JobModel]:
+    def get_all_jobs():
         pass
 
     @staticmethod
     @abstractmethod
-    def get_job(job_id: UUID) -> JobModel:
+    def get_job(job_id: UUID):
         pass
 
     @staticmethod
     @abstractmethod
-    async def submit_jobs(jobs: list[CreateJobRequest]) -> list[JobModel]:
+    async def submit_jobs(jobs: list[CreateJobRequest]):
         pass
 
     @staticmethod
