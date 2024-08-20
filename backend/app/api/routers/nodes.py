@@ -19,7 +19,7 @@ router = APIRouter(
     response_model=list[Node],
 )
 async def get_all_nodes() -> list[Node]:
-    return await NodesService.get_all_nodes()
+    return [Node.from_obj(node) for node in NodesService.get_all_nodes()]
 
 
 @router.post(
@@ -28,7 +28,8 @@ async def get_all_nodes() -> list[Node]:
     response_model=list[Node],
 )
 async def provision_new_nodes(nodes: list[CreateNodeRequest]) -> list[Node]:
-    return await NodesService.provision_nodes(nodes)
+    node_entities = await NodesService.provision_nodes(nodes)
+    return [Node.from_obj(node) for node in node_entities]
 
 
 @router.delete(

@@ -19,7 +19,7 @@ router = APIRouter(
     response_model=list[Job],
 )
 async def get_all_jobs() -> list[Job]:
-    return await JobsService.get_all_jobs()
+    return [Job.from_obj(job) for job in JobsService.get_all_jobs()]
 
 
 @router.post(
@@ -28,7 +28,8 @@ async def get_all_jobs() -> list[Job]:
     response_model=list[Job],
 )
 async def submit_jobs(jobs: list[CreateJobRequest]) -> list[Job]:
-    return await JobsService.submit_jobs(jobs)
+    job_entities = await JobsService.submit_jobs(jobs)
+    return [Job.from_obj(job) for job in job_entities]
 
 
 @router.delete(
