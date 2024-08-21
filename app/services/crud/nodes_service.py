@@ -44,6 +44,8 @@ class InMemoryNodesService(BaseNodesService):
                 id=node_id,
                 max_concurrent_jobs=node.max_concurrent_jobs,
                 max_total_jobs=node.max_total_jobs,
+                vcpu_units=node.vcpu_units,
+                memory=node.memory,
                 jobs=[],
                 metadata={
                     "threads": [set() for _ in range(node.max_concurrent_jobs)],

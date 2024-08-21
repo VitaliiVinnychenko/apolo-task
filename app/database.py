@@ -16,6 +16,8 @@ settings = get_settings()
 class JobModel:
     id: UUID
     total_run_time: int  # milliseconds
+    vcpu_units: int
+    memory: int  # MB
     node_id: Optional[UUID] = None  # node the job is scheduled on
     node_thread_id: Optional[int] = None
     expected_to_start_at: Optional[datetime] = None
@@ -28,6 +30,8 @@ class NodeModel:
     id: UUID
     max_concurrent_jobs: int
     max_total_jobs: int
+    memory: int  # MB
+    vcpu_units: int
     jobs: list[UUID]  # uuids of the jobs
 
     #  The threads and how jobs are distributed between them is stored medatata.

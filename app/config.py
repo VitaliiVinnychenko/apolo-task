@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     ELASTIC_APM_DEBUG: bool = False
     ELASTIC_APM_CAPTURE_BODY: str = "all"
 
+    DISABLE_RESOURCES_CHECKS: bool = False
+
     class Config:
         """
         Tell BaseSettings the env file path

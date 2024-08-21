@@ -77,6 +77,8 @@ class InMemoryJobsService(BaseJobsService):
                 id=job_id,
                 total_run_time=job.total_run_time,
                 status=JobStatus.SCHEDULED,
+                vcpu_units=job.vcpu_units,
+                memory=job.memory,
             )
 
             job_entities.append(job_entity)

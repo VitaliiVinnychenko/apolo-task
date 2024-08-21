@@ -13,6 +13,8 @@ settings: Settings = get_settings()
 
 class CreateJobRequest(BaseModel):
     total_run_time: int = Field(ge=1)  # milliseconds
+    vcpu_units: int = Field(ge=1, le=360)
+    memory: int = Field(ge=128, le=896000)  # MB
 
 
 class Job(CreateJobRequest):
@@ -28,6 +30,8 @@ class Job(CreateJobRequest):
         return cls(
             id=job_entity.id,
             total_run_time=job_entity.total_run_time,
+            vcpu_units=job_entity.vcpu_units,
+            memory=job_entity.memory,
             node_id=job_entity.node_id,
             node_thread_id=job_entity.node_thread_id,
             status=job_entity.status,

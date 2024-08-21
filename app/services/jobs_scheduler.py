@@ -1,14 +1,18 @@
 import asyncio
+import copy
 from collections import namedtuple
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from app.database import JobModel, NodeModel, StateType
+from app.config import get_settings
+from app.database import NodeModel, StateType
 from app.logger import get_logger
 from app.utils.custom_exceptions import NoAvailableNodesLeftException
 from app.utils.enums.jobs import JobStatus
+from app.utils.helpers import datetimes_intersection
 
 logger = get_logger(__name__)
+settings = get_settings()
 
 
 class JobsScheduler:
@@ -128,6 +132,52 @@ class JobsScheduler:
             milliseconds=state["jobs"][job_id].total_run_time
         )
 
+    @staticmethod
+    def _check_resources_availability(
+        state: StateType, job_id: UUID, node_id: UUID, destined_thread: int, node_available_at: datetime | None
+    ) -> bool:
+        if settings.DISABLE_RESOURCES_CHECKS:
+            return True
+
+        job = state["jobs"][job_id]
+        parent_node = state["nodes"][node_id]
+
+        threads = copy.deepcopy(parent_node.metadata["threads"])
+        threads.pop(destined_thread)
+        intersected_jobs_in_threads = [[] for _ in range(len(threads))]
+        max_used_resources_per_thread = []
+
+        for thread_id in range(len(threads)):
+            for job_uuid in threads[thread_id]:
+                expected_to_start_at = node_available_at if node_available_at else datetime.now()
+                expected_to_finish_at = expected_to_start_at + timedelta(milliseconds=job.total_run_time)
+
+                if datetimes_intersection(
+                    expected_to_start_at,
+                    expected_to_finish_at,
+                    state["jobs"][job_uuid].expected_to_start_at,
+                    state["jobs"][job_uuid].expected_to_finish_at,
+                ):
+                    intersected_jobs_in_threads[thread_id].append(state["jobs"][job_uuid])
+
+            if intersected_jobs_in_threads[thread_id]:
+                max_used_cpu = max(obj.vcpu_units for obj in intersected_jobs_in_threads[thread_id])
+            else:
+                max_used_cpu = 0
+
+            if intersected_jobs_in_threads[thread_id]:
+                max_used_memory = max(obj.memory for obj in intersected_jobs_in_threads[thread_id])
+            else:
+                max_used_memory = 0
+
+            Resources = namedtuple("Resources", ["cpu", "memory"])
+            max_used_resources_per_thread.append(Resources(max_used_cpu, max_used_memory))
+
+        total_used_cpu = sum(item.cpu for item in max_used_resources_per_thread) + state["jobs"][job_id].vcpu_units
+        total_used_memory = sum(item.memory for item in max_used_resources_per_thread) + state["jobs"][job_id].memory
+
+        return total_used_cpu <= parent_node.vcpu_units and total_used_memory <= parent_node.memory
+
     @classmethod
     async def schedule_job(cls, state: StateType, job_id: UUID):
         Node = namedtuple("Node", ["id", "thread_id", "available_at"])
@@ -138,12 +188,13 @@ class JobsScheduler:
                 thread_id = node_entity.metadata["best_fit_thread"]["thread_id"]
                 node_available_at = node_entity.metadata["best_fit_thread"]["available_at"]
 
-                if not node_available_at:
-                    cls._append_new_job_to_node(state, node_id, job_id, thread_id, node_available_at)
-                    await cls.refresh_threads_metadata(state, node_id)
-                    return
+                if cls._check_resources_availability(state, job_id, node_id, thread_id, node_available_at):
+                    if not node_available_at:
+                        cls._append_new_job_to_node(state, node_id, job_id, thread_id, node_available_at)
+                        await cls.refresh_threads_metadata(state, node_id)
+                        return
 
-                nodes_availability.append(Node(node_id, thread_id, node_available_at))
+                    nodes_availability.append(Node(node_id, thread_id, node_available_at))
 
         if not nodes_availability:
             raise NoAvailableNodesLeftException

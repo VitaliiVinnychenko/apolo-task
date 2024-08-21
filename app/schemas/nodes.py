@@ -13,6 +13,8 @@ settings: Settings = get_settings()
 class CreateNodeRequest(BaseModel):
     max_concurrent_jobs: int = Field(ge=0)
     max_total_jobs: int = Field(ge=0)
+    vcpu_units: int = Field(ge=1, le=360)
+    memory: int = Field(ge=1024, le=896000)  # MB
 
 
 class Node(CreateNodeRequest):
@@ -25,5 +27,7 @@ class Node(CreateNodeRequest):
             id=node_entity.id,
             max_concurrent_jobs=node_entity.max_concurrent_jobs,
             max_total_jobs=node_entity.max_total_jobs,
+            vcpu_units=node_entity.vcpu_units,
+            memory=node_entity.memory,
             jobs=[Job.from_obj(JobsService.get_job(job_id)) for job_id in node_entity.jobs],
         )
