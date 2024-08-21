@@ -127,6 +127,9 @@ docker-compose up -d --build
 
 API should available here - http://localhost:3000/docs
 
+The resource based (vCPU and memory) job scheduler is enabled by default. 
+To disable go to the `config.py` and update `DISABLE_RESOURCES_CHECKS` value or do the same in `.env` file.
+
 ## 4.2 Local start up message
 
 You should see `INFO: Application startup complete` in the terminal
