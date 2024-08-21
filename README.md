@@ -127,7 +127,7 @@ docker-compose up -d --build
 
 API should available here - http://localhost:3000/docs
 
-The resource based (vCPU and memory) job scheduler is enabled by default. 
+The resource based (vCPU and memory) job scheduler is enabled by default.
 To disable go to the `config.py` and update `DISABLE_RESOURCES_CHECKS` value or do the same in `.env` file.
 
 ## 4.2 Local start up message
@@ -150,4 +150,274 @@ be derived from a few places, in the following order.
 
 ```bash
 coverage run -m pytest  -v -s
+```
+
+## 6.2 Test cases
+
+### Create nodes:
+```shell
+curl -X 'POST' \
+  'http://localhost:3000/api/v1/nodes' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '[
+  {
+    "max_concurrent_jobs": 1,
+    "max_total_jobs": 2,
+    "vcpu_units": 50,
+    "memory": 100000
+  },
+  {
+    "max_concurrent_jobs": 3,
+    "max_total_jobs": 10,
+    "vcpu_units": 50,
+    "memory": 100000
+  }
+]'
+```
+
+### Submit batch of jobs:
+```shell
+curl -X 'POST' \
+  'http://localhost:3000/api/v1/jobs' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '[
+  {
+    "total_run_time": 600000,
+    "vcpu_units": 1,
+    "memory": 1000
+  },
+  {
+    "total_run_time": 50000,
+    "vcpu_units": 1,
+    "memory": 1000
+  },
+  {
+    "total_run_time": 50000,
+    "vcpu_units": 1,
+    "memory": 1000
+  },
+  {
+    "total_run_time": 50000,
+    "vcpu_units": 1,
+    "memory": 1000
+  },
+  {
+    "total_run_time": 50000,
+    "vcpu_units": 1,
+    "memory": 1000
+  },
+  {
+    "total_run_time": 50000,
+    "vcpu_units": 1,
+    "memory": 1000
+  },
+  {
+    "total_run_time": 50000,
+    "vcpu_units": 1,
+    "memory": 1000
+  }
+]'
+```
+
+Expected output:
+```shell
+[
+    {
+        "max_concurrent_jobs": 1,
+        "max_total_jobs": 2,
+        "vcpu_units": 50,
+        "memory": 100000,
+        "id": "d2f9313c-f158-4e9a-ae3e-68adf64a6c7a",
+        "jobs": [
+            {
+                "total_run_time": 600000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "9e35b5a6-fa1b-403c-852e-61e465b1b494",
+                "node_id": "d2f9313c-f158-4e9a-ae3e-68adf64a6c7a",
+                "node_thread_id": 0,
+                "expected_to_start_at": "2024-08-21T14:21:40.285151",
+                "expected_to_finish_at": "2024-08-21T14:31:40.285151",
+                "status": "running"
+            }
+        ]
+    },
+    {
+        "max_concurrent_jobs": 3,
+        "max_total_jobs": 10,
+        "vcpu_units": 50,
+        "memory": 100000,
+        "id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+        "jobs": [
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "73143bdd-b341-43e6-8808-dba9bd380597",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 0,
+                "expected_to_start_at": "2024-08-21T14:21:40.285448",
+                "expected_to_finish_at": "2024-08-21T14:22:30.285448",
+                "status": "running"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "c6647ba9-3bc5-411e-9601-629ce860e356",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 1,
+                "expected_to_start_at": "2024-08-21T14:21:40.288606",
+                "expected_to_finish_at": "2024-08-21T14:22:30.288606",
+                "status": "running"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "019fbd23-a0df-4ecc-b259-1bef23b257db",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 2,
+                "expected_to_start_at": "2024-08-21T14:21:40.288795",
+                "expected_to_finish_at": "2024-08-21T14:22:30.288795",
+                "status": "running"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "7d49d68c-c9ca-48f5-9178-ab1373d3d007",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 0,
+                "expected_to_start_at": "2024-08-21T14:22:30.285448",
+                "expected_to_finish_at": "2024-08-21T14:23:20.285448",
+                "status": "scheduled"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "92f03dd3-655c-4284-9c0d-ccab61fd0e2e",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 1,
+                "expected_to_start_at": "2024-08-21T14:22:30.288606",
+                "expected_to_finish_at": "2024-08-21T14:23:20.288606",
+                "status": "scheduled"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "91831e2f-e7be-44e0-8f42-dc51d1d9fa0e",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 2,
+                "expected_to_start_at": "2024-08-21T14:22:30.288795",
+                "expected_to_finish_at": "2024-08-21T14:23:20.288795",
+                "status": "scheduled"
+            }
+        ]
+    }
+]
+```
+
+### Remove node:
+
+```shell
+curl -X 'DELETE' \
+  'http://localhost:3000/api/v1/nodes/<id of the node with single job>' \
+  -H 'accept: */*'
+```
+
+Expected output:
+```shell
+[
+    {
+        "max_concurrent_jobs": 3,
+        "max_total_jobs": 10,
+        "vcpu_units": 50,
+        "memory": 100000,
+        "id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+        "jobs": [
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "73143bdd-b341-43e6-8808-dba9bd380597",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 0,
+                "expected_to_start_at": "2024-08-21T14:21:40.285448",
+                "expected_to_finish_at": "2024-08-21T14:22:30.285448",
+                "status": "done"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "c6647ba9-3bc5-411e-9601-629ce860e356",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 1,
+                "expected_to_start_at": "2024-08-21T14:21:40.288606",
+                "expected_to_finish_at": "2024-08-21T14:22:30.288606",
+                "status": "done"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "019fbd23-a0df-4ecc-b259-1bef23b257db",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 2,
+                "expected_to_start_at": "2024-08-21T14:21:40.288795",
+                "expected_to_finish_at": "2024-08-21T14:22:30.288795",
+                "status": "done"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "7d49d68c-c9ca-48f5-9178-ab1373d3d007",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 0,
+                "expected_to_start_at": "2024-08-21T14:22:30.285448",
+                "expected_to_finish_at": "2024-08-21T14:23:20.285448",
+                "status": "running"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "92f03dd3-655c-4284-9c0d-ccab61fd0e2e",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 1,
+                "expected_to_start_at": "2024-08-21T14:22:30.288606",
+                "expected_to_finish_at": "2024-08-21T14:23:20.288606",
+                "status": "running"
+            },
+            {
+                "total_run_time": 50000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "91831e2f-e7be-44e0-8f42-dc51d1d9fa0e",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 2,
+                "expected_to_start_at": "2024-08-21T14:22:30.288795",
+                "expected_to_finish_at": "2024-08-21T14:23:20.288795",
+                "status": "running"
+            },
+            {
+                "total_run_time": 600000,
+                "vcpu_units": 1,
+                "memory": 1000,
+                "id": "9e35b5a6-fa1b-403c-852e-61e465b1b494",
+                "node_id": "21869df5-f78b-4a8f-8d5b-d1785121127a",
+                "node_thread_id": 0,
+                "expected_to_start_at": "2024-08-21T14:23:20.285448",
+                "expected_to_finish_at": "2024-08-21T14:33:20.285448",
+                "status": "scheduled"
+            }
+        ]
+    }
+]
 ```
