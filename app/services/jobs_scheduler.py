@@ -1,9 +1,14 @@
+import asyncio
 from collections import namedtuple
 from datetime import datetime, timedelta
 from uuid import UUID
 
 from app.database import JobModel, NodeModel
+from app.logger import get_logger
+from app.utils.custom_exceptions import NoAvailableNodesLeftException
 from app.utils.enums.jobs import JobStatus
+
+logger = get_logger(__name__)
 
 
 class JobsScheduler:
@@ -15,7 +20,7 @@ class JobsScheduler:
         }
 
     @classmethod
-    def refresh_threads_metadata(cls, state: dict[str, dict[UUID, NodeModel | JobModel]], node_id: UUID):
+    async def refresh_threads_metadata(cls, state: dict[str, dict[UUID, NodeModel | JobModel]], node_id: UUID):
         node_entity = state["nodes"][node_id]
 
         if node_entity.metadata["free_threads"] == node_entity.max_concurrent_jobs:
@@ -50,7 +55,29 @@ class JobsScheduler:
             )
 
     @classmethod
+    async def _remove_inactive_jobs(
+        cls, state: dict[str, dict[UUID, NodeModel | JobModel]], node_id: UUID, inactive_jobs: list[UUID]
+    ):
+        for thread_id in range(len(state["nodes"][node_id].metadata["threads"])):
+            jobs_in_thread = len(state["nodes"][node_id].metadata["threads"][thread_id])
+            state["nodes"][node_id].metadata["threads"][thread_id] = [
+                i for i in state["nodes"][node_id].metadata["threads"][thread_id] if i not in inactive_jobs
+            ]
+            active_jobs_in_thread = len(state["nodes"][node_id].metadata["threads"][thread_id])
+            state["nodes"][node_id].metadata["total_active_jobs"] -= jobs_in_thread - active_jobs_in_thread
+
+            if not active_jobs_in_thread:
+                state["nodes"][node_id].metadata["free_threads"] += 1
+
+        await cls.refresh_threads_metadata(state, node_id)
+
+    @classmethod
     async def update_jobs(cls, state: dict[str, dict[UUID, NodeModel | JobModel]]):
+        """
+        Ideally the job status should be changed via callback once the job if finished
+        but since it's an emulation of job schedulement and we do not have such option
+        then it is done before each GET, POST or DELETE request.
+        """
         inactive_jobs = []
 
         # Update job status in each job entity
@@ -61,8 +88,8 @@ class JobsScheduler:
             ):
                 if job_entity.expected_to_start_at <= datetime.now() < job_entity.expected_to_finish_at:
                     job_entity.status = JobStatus.RUNNING
-                elif datetime.now() <= job_entity.expected_to_finish_at:
-                    job_entity.status = JobStatus.RUNNING
+                elif job_entity.expected_to_finish_at <= datetime.now():
+                    job_entity.status = JobStatus.DONE
 
             if job_entity.status in (
                 JobStatus.DONE,
@@ -71,22 +98,12 @@ class JobsScheduler:
                 inactive_jobs.append(job_id)
 
         # Remove inactive jobs from all nodes threads and update metadata
-        for node_id, node_entity in state["nodes"].items():
-            for thread_id in range(len(node_entity.metadata["threads"])):
-                # TODO: use asyncio tasks here
-                jobs_in_thread = len(node_entity.metadata["threads"][thread_id])
-                node_entity.metadata["threads"][thread_id] = [
-                    i for i in node_entity.metadata["threads"][thread_id] if i not in inactive_jobs
-                ]
-                active_jobs_in_thread = len(node_entity.metadata["threads"][thread_id])
-                node_entity.metadata["total_active_jobs"] -= jobs_in_thread - active_jobs_in_thread
+        logger.info("Removing inactive jobs: %s", inactive_jobs)
+        async with asyncio.TaskGroup() as tg:
+            for node_id in state["nodes"].keys():
+                tg.create_task(cls._remove_inactive_jobs(state, node_id, inactive_jobs))
 
-                if not active_jobs_in_thread:
-                    node_entity.metadata["free_threads"] += 1
-
-            cls.refresh_threads_metadata(state, node_id)
-
-        print(state)
+        logger.debug(state)
 
     @staticmethod
     def _append_new_job_to_node(
@@ -105,6 +122,7 @@ class JobsScheduler:
 
         # update job entity
         state["jobs"][job_id].node_id = node_id
+        state["jobs"][job_id].node_thread_id = thread_id
         state["jobs"][job_id].expected_to_start_at = start_time
         state["jobs"][job_id].expected_to_finish_at = start_time + timedelta(
             milliseconds=state["jobs"][job_id].total_run_time
@@ -122,13 +140,15 @@ class JobsScheduler:
 
                 if not node_available_at:
                     cls._append_new_job_to_node(state, node_id, job_id, thread_id, node_available_at)
-                    cls.refresh_threads_metadata(state, node_id)
+                    await cls.refresh_threads_metadata(state, node_id)
                     return
 
                 nodes_availability.append(Node(node_id, thread_id, node_available_at))
 
+        if not nodes_availability:
+            raise NoAvailableNodesLeftException
+
         nodes_availability.sort(key=lambda x: x.available_at)
-        # TODO: handle unavailability of all nodes
         node = nodes_availability[0]
         cls._append_new_job_to_node(state, node.id, job_id, node.thread_id, node.available_at)
-        cls.refresh_threads_metadata(state, node.id)
+        await cls.refresh_threads_metadata(state, node.id)

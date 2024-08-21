@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -15,7 +17,10 @@ class CreateJobRequest(BaseModel):
 
 class Job(CreateJobRequest):
     id: UUID
-    node_uuid: UUID | None
+    node_id: Optional[UUID]
+    node_thread_id: Optional[int]
+    expected_to_start_at: datetime
+    expected_to_finish_at: datetime
     status: JobStatus = JobStatus.SCHEDULED
 
     @classmethod
@@ -23,6 +28,9 @@ class Job(CreateJobRequest):
         return cls(
             id=job_entity.id,
             total_run_time=job_entity.total_run_time,
-            node_uuid=job_entity.node_id,
+            node_id=job_entity.node_id,
+            node_thread_id=job_entity.node_thread_id,
             status=job_entity.status,
+            expected_to_start_at=job_entity.expected_to_start_at,
+            expected_to_finish_at=job_entity.expected_to_finish_at,
         )

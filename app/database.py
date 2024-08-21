@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from app.config import get_settings
@@ -15,10 +16,11 @@ settings = get_settings()
 class JobModel:
     id: UUID
     total_run_time: int  # milliseconds
-    node_id: UUID | None  # node the job is scheduled on
+    node_id: Optional[UUID] = None  # node the job is scheduled on
+    node_thread_id: Optional[int] = None
+    expected_to_start_at: Optional[datetime] = None
+    expected_to_finish_at: Optional[datetime] = None
     status: JobStatus = JobStatus.SCHEDULED
-    expected_to_start_at: datetime | None = None
-    expected_to_finish_at: datetime | None = None
 
 
 @dataclass

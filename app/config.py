@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     RELOAD: bool = True
     CLIENT_ORIGIN_URLS: str = "http://localhost:3000"
     API_V1_PREFIX: str = "/api/v1"
-    LOGGING_LEVEL: str = "CRITICAL"
+    LOGGING_LEVEL: str = "INFO"
     WHITELISTED_PATHS: set[str] = {
         "/docs",
         "/status",
