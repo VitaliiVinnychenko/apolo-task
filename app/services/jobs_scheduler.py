@@ -27,29 +27,22 @@ class JobsScheduler:
             cls._update_best_fit_thread_dict(node_entity, 0, None)
         else:
             last_jobs_per_thread = []
-            Thread = namedtuple("Thread", ["id", "active_jobs", "available_at"])
+            Thread = namedtuple("Thread", ["id", "available_at"])
 
             for thread_id in range(len(node_entity.metadata["threads"])):
                 thread = node_entity.metadata["threads"][thread_id]
-                jobs_amount = len(thread)
-                if not jobs_amount:
+                if not thread:
                     cls._update_best_fit_thread_dict(node_entity, thread_id, None)
                     return
 
                 last_jobs_per_thread.append(
                     Thread(
                         id=thread_id,
-                        active_jobs=jobs_amount,
                         available_at=state["jobs"][thread[-1]].expected_to_finish_at,
                     )
                 )
 
-            last_jobs_per_thread.sort(
-                key=lambda x: (
-                    x.active_jobs,
-                    x.available_at,
-                )
-            )
+            last_jobs_per_thread.sort(key=lambda x: x.available_at)
             cls._update_best_fit_thread_dict(
                 node_entity, last_jobs_per_thread[0].id, last_jobs_per_thread[0].available_at
             )
@@ -71,6 +64,23 @@ class JobsScheduler:
 
         await cls.refresh_threads_metadata(state, node_id)
 
+    @staticmethod
+    async def _update_job_status(state: dict[str, dict[UUID, NodeModel | JobModel]], job_id: UUID) -> UUID | None:
+        if state["jobs"][job_id].status in (
+            JobStatus.SCHEDULED,
+            JobStatus.RUNNING,
+        ):
+            if (
+                state["jobs"][job_id].expected_to_start_at
+                <= datetime.now()
+                < state["jobs"][job_id].expected_to_finish_at
+            ):
+                state["jobs"][job_id].status = JobStatus.RUNNING
+            elif state["jobs"][job_id].expected_to_finish_at <= datetime.now():
+                state["jobs"][job_id].status = JobStatus.DONE
+
+        return job_id if state["jobs"][job_id].status in (JobStatus.DONE, JobStatus.TERMINATED) else None
+
     @classmethod
     async def update_jobs(cls, state: dict[str, dict[UUID, NodeModel | JobModel]]):
         """
@@ -78,24 +88,11 @@ class JobsScheduler:
         but since it's an emulation of job schedulement and we do not have such option
         then it is done before each GET, POST or DELETE request.
         """
-        inactive_jobs = []
-
-        # Update job status in each job entity
-        for job_id, job_entity in state["jobs"].items():
-            if job_entity.status in (
-                JobStatus.SCHEDULED,
-                JobStatus.RUNNING,
-            ):
-                if job_entity.expected_to_start_at <= datetime.now() < job_entity.expected_to_finish_at:
-                    job_entity.status = JobStatus.RUNNING
-                elif job_entity.expected_to_finish_at <= datetime.now():
-                    job_entity.status = JobStatus.DONE
-
-            if job_entity.status in (
-                JobStatus.DONE,
-                JobStatus.TERMINATED,
-            ):
-                inactive_jobs.append(job_id)
+        inactive_jobs = await asyncio.gather(
+            *[cls._update_job_status(state, job_id) for job_id in state["jobs"].keys()]
+        )
+        # remove all None elements
+        inactive_jobs = [job_id for job_id in inactive_jobs if job_id]
 
         # Remove inactive jobs from all nodes threads and update metadata
         logger.info("Removing inactive jobs: %s", inactive_jobs)
