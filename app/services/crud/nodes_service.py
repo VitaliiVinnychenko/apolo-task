@@ -1,10 +1,13 @@
+import copy
 import uuid
 from abc import ABC, abstractmethod
 from uuid import UUID
 
 from app.database import NodeModel, state
 from app.schemas.nodes import CreateNodeRequest
+from app.services.crud.jobs_service import InMemoryJobsService
 from app.services.jobs_scheduler import JobsScheduler
+from app.utils.custom_exceptions import NoAvailableNodesLeftException
 
 
 class BaseNodesService(ABC):
@@ -62,4 +65,16 @@ class InMemoryNodesService(BaseNodesService):
     async def remove_node(node_id: UUID) -> None:
         await JobsScheduler.update_jobs(state)
 
+        previous_nodes_state = copy.deepcopy(state["nodes"])
         del state["nodes"][node_id]
+
+        jobs_to_be_rescheduled = [
+            job_id for thread in previous_nodes_state[node_id].metadata["threads"] for job_id in thread
+        ]
+
+        try:
+            for job_id in jobs_to_be_rescheduled:
+                await JobsScheduler.schedule_job(state, job_id)
+        except NoAvailableNodesLeftException as e:
+            state["nodes"] = previous_nodes_state
+            raise e

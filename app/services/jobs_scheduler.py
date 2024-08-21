@@ -3,7 +3,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from app.database import NodeModel, StateType
+from app.database import JobModel, NodeModel, StateType
 from app.logger import get_logger
 from app.utils.custom_exceptions import NoAvailableNodesLeftException
 from app.utils.enums.jobs import JobStatus
@@ -79,6 +79,8 @@ class JobsScheduler:
                 state["jobs"][job_id].status = JobStatus.RUNNING
             elif state["jobs"][job_id].expected_to_finish_at <= datetime.now():
                 state["jobs"][job_id].status = JobStatus.DONE
+            elif state["jobs"][job_id].expected_to_start_at > datetime.now():
+                state["jobs"][job_id].status = JobStatus.SCHEDULED
 
         return job_id if state["jobs"][job_id].status in (JobStatus.DONE, JobStatus.TERMINATED) else None
 
@@ -149,6 +151,7 @@ class JobsScheduler:
         nodes_availability.sort(key=lambda x: x.available_at)
         node = nodes_availability[0]
         cls._append_new_job_to_node(state, node.id, job_id, node.thread_id, node.available_at)
+        await cls.update_jobs(state)
         await cls.refresh_threads_metadata(state, node.id)
 
     @classmethod
@@ -185,7 +188,3 @@ class JobsScheduler:
         )
         await cls.update_jobs(state)
         await cls.refresh_threads_metadata(state, job_entity.node_id)
-
-    @classmethod
-    async def handle_node_removal(cls):
-        pass

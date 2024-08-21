@@ -45,7 +45,7 @@ class InMemoryJobsService(BaseJobsService):
         return state["jobs"][job_id]
 
     @staticmethod
-    async def _remove_jobs(job_entities: list[JobModel]):
+    async def revert_jobs(job_entities: list[JobModel]):
         jobs_to_remove: list[UUID] = []
 
         # terminate jobs from the batch that were submitted before the node run out of resources
@@ -84,7 +84,7 @@ class InMemoryJobsService(BaseJobsService):
             try:
                 await JobsScheduler.schedule_job(state, job_id)
             except NoAvailableNodesLeftException as e:
-                await cls._remove_jobs(job_entities)
+                await cls.revert_jobs(job_entities)
                 raise e
 
         return job_entities
