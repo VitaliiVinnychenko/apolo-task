@@ -53,4 +53,5 @@ class NodeModel:
 # =====================================
 # The imitation of the database storage
 # =====================================
-state: dict[str, dict[UUID, NodeModel | JobModel]] = {"nodes": {}, "jobs": {}}
+StateType = dict[str, dict[UUID, NodeModel | JobModel]]
+state: StateType = {"nodes": {}, "jobs": {}}

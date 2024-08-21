@@ -5,7 +5,10 @@ from uuid import UUID
 from app.database import JobModel, state
 from app.schemas.jobs import CreateJobRequest
 from app.services.jobs_scheduler import JobsScheduler
-from app.utils.custom_exceptions import NoAvailableNodesLeftException
+from app.utils.custom_exceptions import (
+    JobAlreadyTerminatedOrDoneException,
+    NoAvailableNodesLeftException,
+)
 from app.utils.enums.jobs import JobStatus
 
 
@@ -89,4 +92,9 @@ class InMemoryJobsService(BaseJobsService):
     @staticmethod
     async def terminate_job(job_id: UUID) -> None:
         await JobsScheduler.update_jobs(state)
-        del state["jobs"][job_id]
+        if state["jobs"][job_id].status in (JobStatus.RUNNING, JobStatus.SCHEDULED):
+            previous_status = state["jobs"][job_id].status
+            state["jobs"][job_id].status = JobStatus.TERMINATED
+            await JobsScheduler.handle_job_termination(state, job_id, previous_status)
+        else:
+            raise JobAlreadyTerminatedOrDoneException
