@@ -136,6 +136,10 @@ class JobsScheduler:
     def _check_resources_availability(
         state: StateType, job_id: UUID, node_id: UUID, destined_thread: int, node_available_at: datetime | None
     ) -> bool:
+        """
+        This function is used to check the available amount of vCPU and memory
+        in suggested time window across all threads combined in a single node.
+        """
         if settings.DISABLE_RESOURCES_CHECKS:
             return True
 
